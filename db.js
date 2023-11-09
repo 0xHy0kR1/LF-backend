@@ -1,9 +1,10 @@
+require('dotenv').config(); // Load environment variables
 const mongoose = require('mongoose'); //Importing mongoose
-const mongoURI = process.env.REACT_APP_MONGO_URI;
+const mongoURI = process.env.MONGO_URL;
 
 const connectToMongo = async ()=>{
     try {
-        await mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
+        await mongoose.connect(mongoURI);
         console.log('Connected Successfully');
     } catch (error) {
         console.error(error);

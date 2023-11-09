@@ -4,7 +4,7 @@ const LostItem = require('../models/LostItem'); // Import the lostItem model
 const authMiddleware = require('../middleware/authMiddleware'); // Custom authentication middleware
 const User = require('../models/User');
 
-// Route to create a new lost item
+// ROUTE 1: Add a new lost item using: POST "/api/lost-items/create". login required
 router.post('/create', authMiddleware, async (req, res) => {
     try {
       if (!req.userId) {
@@ -29,7 +29,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   });
 
 
-// Route to list all lost items
+// ROUTE 2: Get All lost items using: GET "/api/lost-items/list". login required
 router.get('/list', async(req, res)=>{
     try{
         const lostItems = await LostItem.find();
@@ -40,7 +40,7 @@ router.get('/list', async(req, res)=>{
     }
 })
 
-// Route to update a specific lost item
+// ROUTE 3: Update a specific lost item using: PUT "/api/lost-items/update/:itemId". login required
 router.put('/update/:itemId', authMiddleware, async(req,res) => {
     try{
         const itemId = req.params.itemId; // Item ID from the route parameters
@@ -84,7 +84,7 @@ router.put('/update/:itemId', authMiddleware, async(req,res) => {
     }
 })
 
-// Route to delete a specific lost item
+// ROUTE 4: Delete a specific lost item using: DELETE "/api/lost-items/delete/:itemId". login required
 router.delete('/delete/:itemId', authMiddleware, async(req, res) => {
 
     try{

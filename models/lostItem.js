@@ -3,26 +3,41 @@ const { Schema } = mongoose;
 
 // Define the schema for lost items
 const lostItemSchema = new Schema({
-    title:{
-        type: 'string',
+    title: {
+        type: String,
         required: true
     },
-    description:{
-        type: 'string',
+    description: {
+        type: String,
         required: true
     },
     category: {
-        type: 'string',
+        type: String,
         required: true
     },
     location: {
-        type: 'string',
+        type: String,
+        required: true
+    },
+    securityQuestion: {
+        question: {
+            type: String,
+            required: true,
+        },
+        answer: {
+            type: String,
+            required: true,
+        },
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     isLost: {
-        type: 'boolean',
+        type: Boolean,
         default: true
-    },
+    }, // Indicates that it's a lost item
     createdAt: {
         type: Date,
         default: Date.now

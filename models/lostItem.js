@@ -34,6 +34,10 @@ const lostItemSchema = new Schema({
         ref: 'User',
         required: true
     },
+    image: {
+        type: String,
+        required: true,
+    },
     isLost: {
         type: Boolean,
         default: true

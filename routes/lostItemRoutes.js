@@ -3,15 +3,57 @@ const router = express.Router(); // Create a router(It defines a new router obje
 const LostItem = require('../models/LostItem'); // Import the lostItem model
 const authMiddleware = require('../middleware/authMiddleware'); // Custom authentication middleware
 const User = require('../models/User');
+const multer = require('multer'); 
+const sharp = require('sharp');
+// import { S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const crypto = require("crypto");
+
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+
+// The below help us to create hex file name for files using crpto library
+const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
+
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
+
+
+const bucketName = process.env.BUCKET_NAME 
+const bucketRegion = process.env.BUCKET_REGION 
+const accessKey = process.env.ACCESS_KEY 
+const secretAccessKey = process.env.SECRET_ACCESS_KEY
+
+// Creating a new s3 object
+const s3 = new S3Client({
+    credentials: {
+      accessKeyId: accessKey, 
+      secretAccessKey: secretAccessKey,
+    },
+    region: bucketRegion
+  });
 
 // ROUTE 1: Add a new lost item using: POST "/api/lost-items/create". login required
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/create', authMiddleware, upload.single("image"), async (req, res) => {
     try {
       if (!req.userId) {
         return res.status(401).json({ error: 'Authentication required' });
       }
-  
+
+      // resize image
+      const buffer = await sharp(req.file.buffer).resize({height: 1920, width: 1080, fit: "contain"}).toBuffer();
       const { title, description, category, location, securityQuestion  } = req.body;
+      const randomeimgName = randomImageName();
+      const params = {
+        Bucket: bucketName,
+        Key: randomeimgName,
+        Body: buffer,
+        ContentType: req.file.mimetype
+      }
+
+      const command = new PutObjectCommand(params)
+
+      await s3.send(command);
       const newLostItem = new LostItem({
         title,
         description,
@@ -19,6 +61,7 @@ router.post('/create', authMiddleware, async (req, res) => {
         location,
         securityQuestion,
         user: req.userId,
+        image: randomeimgName,
       });
       await newLostItem.save();
       res.status(201).json(newLostItem);
@@ -31,6 +74,8 @@ router.post('/create', authMiddleware, async (req, res) => {
 
 // ROUTE 2: Get All lost items using: GET "/api/lost-items/list". login required
 router.get('/list', async(req, res)=>{
+
+
     try{
         const lostItems = await LostItem.find();
         res.json({lostItems: lostItems});

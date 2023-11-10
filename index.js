@@ -18,12 +18,6 @@ app.use(express.json())
 app.use('/api/auth', require('./routes/authRoutes'));  //This response is shown when the user visit "http://localhost:5000/api/auth"
 app.use('/api/lost-items', require('./routes/lostItemRoutes')); //This response is shown when the user visit "http://localhost:5000/api/lost-items"
 
-// Error Handling Middleware
-// app.use((error, req, res, next) => {
-//   console.error(error);
-//   res.status(error.status || 500).json({ error: error.message });
-// }); 
-
 // Start the Express server
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

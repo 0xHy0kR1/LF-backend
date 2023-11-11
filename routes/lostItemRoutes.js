@@ -283,7 +283,18 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
             return res.status(404).json({error: 'User not found'});
         }
 
-        const {email} = user;
+        // Extract username from user object
+        const { username, email } = user;
+
+        // Add a new notification to user A's lost item
+        lostItem.notifications.push({
+            userId: user._id,
+            message: `${username} answered your question!`,
+        });
+
+        // Save the updated lost item
+        await lostItem.save();
+
         res.json({
             email: email,
             itemName: lostItem.title,

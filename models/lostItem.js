@@ -38,6 +38,19 @@ const lostItemSchema = new Schema({
         type: String,
         required: true,
     },
+    notifications: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+          },
+          message: String,
+          isRead: {
+            type: Boolean,
+            default: false,
+          },
+        },
+      ],
     isLost: {
         type: Boolean,
         default: true

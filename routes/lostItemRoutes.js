@@ -6,16 +6,20 @@ const User = require('../models/User');
 const multer = require('multer'); 
 const sharp = require('sharp');
 // import { S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
-const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const crypto = require("crypto");
-
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
+const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
 
 // The below help us to create hex file name for files using crpto library
 const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
 
-const storage = multer.memoryStorage()
+const storage = multer.memoryStorage({
+    // Set a higher limit for image file size
+    limits: {
+        fileSize: 20 * 1024 * 1024 // 20 MB
+    },
+});
+
 const upload = multer({ storage: storage })
 
 
@@ -76,22 +80,47 @@ router.post('/create', authMiddleware, upload.single("image"), async (req, res) 
 router.get('/list', async(req, res)=>{
 
 
-    try{
+    try {
         const lostItems = await LostItem.find();
-        res.json({lostItems: lostItems});
-    }catch(error){
+
+        // Generate pre-signed URLs for each image
+        const itemsWithUrls = [];
+        for (const item of lostItems) {
+            if (!item.image) {
+                console.error('Image not found for item:', item);
+                continue;
+            }
+            console.log(item.image);
+            const getObjectParams = {
+                Bucket: bucketName,
+                Key: item.image,
+            };
+            const command = new GetObjectCommand(getObjectParams);
+            const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+            itemsWithUrls.push({
+                ...item.toObject(),
+                imageUrl: url,
+            });
+        }
+
+        res.json({ lostItems: itemsWithUrls });
+    } catch (error) {
         console.error(error);
-        res.status(500).json({error: 'Failed to retrieve lost items'});
+        res.status(500).json({ error: 'Failed to retrieve lost items' });
     }
 })
 
 // ROUTE 3: Update a specific lost item using: PUT "/api/lost-items/update/:itemId". login required
-router.put('/update/:itemId', authMiddleware, async(req,res) => {
+router.put('/update/:itemId', upload.single("image") , authMiddleware, async(req,res) => {
     try{
         const itemId = req.params.itemId; // Item ID from the route parameters
         const { title, description, category, location, securityQuestion } = req.body;
-
+        const {file} = req;
         const lostItem = await LostItem.findById(itemId);
+
+        // Generate a new random image name
+        const newImgName = randomImageName();
 
         if(!lostItem){
             return res.status(404).json({error: 'Lost item not found'});
@@ -117,6 +146,35 @@ router.put('/update/:itemId', authMiddleware, async(req,res) => {
         }
         if(securityQuestion){
             lostItem.securityQuestion = securityQuestion;
+        }
+
+        // Check if a new image file is provided
+        if(file){
+            // Delete the old image from S3
+            const deleteparams = {
+                Bucket: bucketName,
+                Key: lostItem.image
+            }
+
+            const deleteCommand = new DeleteObjectCommand(deleteparams);
+            await s3.send(deleteCommand);
+
+            // Resize the new image file if needed
+            const buffer = await sharp(file.buffer).resize({height: 1920, width: 1080, fit: "contain"}).toBuffer();
+
+            // Upload the new image to S3
+            const params = {
+                Bucket: bucketName,
+                Key: newImgName,
+                Body: buffer,
+                ContentType: file.mimetype,
+            };
+
+            const uploadCommand = new PutObjectCommand(params);
+            await s3.send(uploadCommand);
+
+            // Update the image field with the new image name
+            lostItem.image = newImgName;
         }
         
         // Save the updated Item

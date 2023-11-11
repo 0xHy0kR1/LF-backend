@@ -90,7 +90,6 @@ router.get('/list', async(req, res)=>{
                 console.error('Image not found for item:', item);
                 continue;
             }
-            console.log(item.image);
             const getObjectParams = {
                 Bucket: bucketName,
                 Key: item.image,
@@ -203,32 +202,22 @@ router.delete('/delete/:itemId', authMiddleware, async(req, res) => {
         if(lostItem.user.toString() !== req.userId){
             return res.status(403).json({error: 'Permission denied'});
         }
-        
-        // Delete the item
-        await lostItem.deleteOne();
-
-        res.json({message: 'Item deleted successfully'});
-    }catch(error){
-        console.error(error);
-        res.status(500).json({error: 'Failed to delete the lost item'});
-    }
-})
-
-// Route to view a specific lost item
-router.get('/view/:itemId', async(req, res) => {
-    try{
-        const itemId = req.params.itemId; // Item ID from the route parameters
-
-        const lostItem = await LostItem.findById(itemId);
-
-        if(!lostItem){
-            return res.status(404).json({error: 'lost Item not found'});
+        // Delete the old image from S3
+        const deleteparams = {
+            Bucket: bucketName,
+            Key: lostItem.image
         }
 
-        res.json(lostItem);
-    }catch(error){
+        const deleteCommand = new DeleteObjectCommand(deleteparams);
+        await s3.send(deleteCommand);
+
+        // Delete the item from database
+        await lostItem.deleteOne();
+
+        res.json({success: true, message: 'Item deleted successfully'});
+    }catch (error) {
         console.error(error);
-        res.status(500).json({error: 'Failed to retrieve the lost item'});
+        res.status(500).json({ error: `Failed to delete the lost item: ${error.message}` });
     }
 })
 
@@ -257,7 +246,14 @@ router.get('/view/:itemId', async (req, res) => {
         }
 
         const {email} = user;
-        res.json({email: email});
+        res.json({
+            email: email,
+            itemName: lostItem.title,
+            description: lostItem.description,
+            category: lostItem.category,
+            location: lostItem.location,
+            imageUrl: lostItem.imageUrl
+        });
     } catch (error){
         console.error(error);
         res.status(500).json({error: 'Failed to retrieve lost item'});
@@ -269,7 +265,7 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
 
     try{
         const itemId = req.params.itemId;
-        const answer = req.body;
+        const answer = req.query.securityQuestion.answer;
 
         const lostItem = await LostItem.findById(itemId);
 
@@ -288,7 +284,14 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
         }
 
         const {email} = user;
-        res.json({email});
+        res.json({
+            email: email,
+            itemName: lostItem.title,
+            description: lostItem.description,
+            category: lostItem.category,
+            location: lostItem.location,
+            imageUrl: lostItem.imageUrl
+        });
     }catch (error){
         console.error(error);
         res.status(500).json({error: 'Failed to submit the answer'});

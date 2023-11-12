@@ -265,7 +265,7 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
 
     try{
         const itemId = req.params.itemId;
-        const answer = req.query.securityQuestion.answer;
+        const answer = req.body.securityQuestion.answer;
 
         const lostItem = await LostItem.findById(itemId);
 
@@ -284,12 +284,12 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
         }
 
         // Extract username from user object
-        const { username, email } = user;
+        const { email } = user;
 
         // Add a new notification to user A's lost item
         lostItem.notifications.push({
             userId: user._id,
-            message: `${username} answered your question!`,
+            message: `Someone answered your question!`,
         });
 
         // Save the updated lost item

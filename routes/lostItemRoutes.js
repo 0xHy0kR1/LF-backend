@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router(); // Create a router(It defines a new router object )
-const LostItem = require('../models/LostItem'); // Import the lostItem model
+const LostItem = require('../models/lostItem'); // Import the lostItem model
 const authMiddleware = require('../middleware/authMiddleware'); // Custom authentication middleware
 const User = require('../models/User');
 const multer = require('multer'); 
@@ -44,9 +44,16 @@ router.post('/create', authMiddleware, upload.single("image"), async (req, res) 
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
       // resize image
       const buffer = await sharp(req.file.buffer).resize({height: 1920, width: 1080, fit: "contain"}).toBuffer();
-      const { title, description, category, location, securityQuestion  } = req.body;
+      const { title, description, category, location, securityQuestion: securityQuestionJson } = req.body;
+      // Parse the securityQuestion JSON string
+      const securityQuestion = JSON.parse(securityQuestionJson);
+
       const randomeimgName = randomImageName();
       const params = {
         Bucket: bucketName,

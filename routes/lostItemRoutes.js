@@ -49,7 +49,7 @@ router.post('/create', authMiddleware, upload.single("image"), async (req, res) 
       }
 
       // resize image
-      const buffer = await sharp(req.file.buffer).resize({height: 1920, width: 1080, fit: "contain"}).toBuffer();
+      const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit: "inside"}).toBuffer();
       const { title, description, category, location, securityQuestion: securityQuestionJson } = req.body;
       // Parse the securityQuestion JSON string
       const securityQuestion = JSON.parse(securityQuestionJson);

@@ -3,8 +3,7 @@ const User = require('../models/User');
 
 const authMiddleware = async (req, res, next) => {
 
-    const token = req.header('auth-token');
-
+    const token = req.header('authToken');
     if(!token){
         return res.status(401).json({message: 'Access Denied. No authentication token provided.'});
     }

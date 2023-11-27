@@ -49,7 +49,7 @@ router.post('/create', authMiddleware, upload.single("image"), async (req, res) 
       }
 
       // resize image
-      const buffer = await sharp(req.file.buffer).resize({height: 1080, width: 1080, fit: "inside"}).toBuffer();
+      const buffer = await sharp(req.file.buffer).resize({height: 1920, width: 1080, fit: "inside"}).toBuffer();
       const { title, description, category, location, securityQuestion: securityQuestionJson } = req.body;
       // Parse the securityQuestion JSON string
       const securityQuestion = JSON.parse(securityQuestionJson);
@@ -122,7 +122,6 @@ router.put('/update/:itemId', upload.single("image") , authMiddleware, async(req
     try{
         const itemId = req.params.itemId; // Item ID from the route parameters
         const { title, description, category, location, securityQuestion } = req.body;
-        const {file} = req;
         const lostItem = await LostItem.findById(itemId);
 
         // Generate a new random image name
@@ -150,12 +149,16 @@ router.put('/update/:itemId', upload.single("image") , authMiddleware, async(req
         if(location){
             lostItem.location = location;
         }
-        if(securityQuestion){
-            lostItem.securityQuestion = securityQuestion;
+        // Parse the securityQuestion JSON string if provided
+        if (securityQuestion) {
+            try {
+                lostItem.securityQuestion = JSON.parse(securityQuestion);
+            } catch (error) {
+                return res.status(400).json({ error: 'Invalid JSON format for securityQuestion' });
+            }
         }
-
         // Check if a new image file is provided
-        if(file){
+        if(req.file){
             // Delete the old image from S3
             const deleteparams = {
                 Bucket: bucketName,
@@ -164,16 +167,16 @@ router.put('/update/:itemId', upload.single("image") , authMiddleware, async(req
 
             const deleteCommand = new DeleteObjectCommand(deleteparams);
             await s3.send(deleteCommand);
-
+            
             // Resize the new image file if needed
-            const buffer = await sharp(file.buffer).resize({height: 1920, width: 1080, fit: "contain"}).toBuffer();
+            const buffer = await sharp(req.file.buffer).resize({height: 1920, width: 1080, fit: "inside"}).toBuffer();
 
             // Upload the new image to S3
             const params = {
                 Bucket: bucketName,
                 Key: newImgName,
                 Body: buffer,
-                ContentType: file.mimetype,
+                ContentType: req.file.mimetype,
             };
 
             const uploadCommand = new PutObjectCommand(params);

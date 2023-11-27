@@ -22,11 +22,11 @@ const lostItemSchema = new Schema({
     securityQuestion: {
         question: {
             type: String,
-            required: true,
+            required: false,
         },
         answer: {
             type: String,
-            required: true,
+            required: false,
         },
     },
     user: {

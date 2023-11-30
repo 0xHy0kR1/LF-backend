@@ -231,7 +231,7 @@ router.delete('/delete/:itemId', authMiddleware, async(req, res) => {
     }
 })
 
-// Route to view a specific lost item
+// ROUTE 5: Route to view a specific lost item
 router.get('/view/:itemId', async (req, res) => {
 
     try{
@@ -270,10 +270,11 @@ router.get('/view/:itemId', async (req, res) => {
     }
 });
 
-// Route to submit the answer to the security question
+// ROUTE 6: Route to submit the answer to the security question
 router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
 
     try{
+        console.log("req value inside backend answer func: "+req);
         const itemId = req.params.itemId;
         const answer = req.body.securityQuestion.answer;
 
@@ -311,7 +312,8 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
             description: lostItem.description,
             category: lostItem.category,
             location: lostItem.location,
-            imageUrl: lostItem.imageUrl
+            imageUrl: lostItem.imageUrl,
+            userId: lostItem.user,
         });
     }catch (error){
         console.error(error);
@@ -319,5 +321,35 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
     }
 });
 
+// ROUTE 5: Mark a specific lost item as found using: PUT "/api/lost-items/markAsFound/:itemId". login required
+router.put('/markAsFound/:itemId', authMiddleware, async (req, res) => {
+    try{
+        console.log("req value: "+req);
+        const itemId = req.params.itemId; // Item ID from the route parameters
+        console.log("itemId: ", itemId);
 
+        const lostItem = await LostItem.findById(itemId);
+        console.log("lostItem: ", lostItem);
+
+        if(!lostItem){
+            return res.status(404).json({error: 'Lost item not found'});
+        }
+
+        // Check if the user marking the item as found is the owner of the lost item
+        if(lostItem.user.toString() !== req.userId){
+            return res.status(403).json({error: 'Permission denied'});
+        }
+
+        // Update the status of the lost item as found
+        lostItem.isLost = false;
+
+        // Save the updated lost item
+        await lostItem.save();
+
+        res.json({success: true, message: 'Item marked as found successfully'});
+    } catch (error){
+        console.error(error);
+        res.status(500).json({success: false, message: 'Failed to mark the item as found'});
+    }
+});
 module.exports = router;

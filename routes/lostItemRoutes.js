@@ -84,7 +84,7 @@ router.post('/create', authMiddleware, upload.single("image"), async (req, res) 
 
 
 // ROUTE 2: Get All lost items using: GET "/api/lost-items/list". login required
-router.get('/list', async(req, res)=>{
+router.get('/list-lostItems', async(req, res)=>{
 
 
     try {
@@ -321,7 +321,7 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
     }
 });
 
-// ROUTE 5: Mark a specific lost item as found using: PUT "/api/lost-items/markAsFound/:itemId". login required
+// ROUTE 7: Mark a specific lost item as found using: PUT "/api/lost-items/markAsFound/:itemId". login required
 router.put('/markAsFound/:itemId', authMiddleware, async (req, res) => {
     try{
         console.log("req value: "+req);
@@ -352,4 +352,38 @@ router.put('/markAsFound/:itemId', authMiddleware, async (req, res) => {
         res.status(500).json({success: false, message: 'Failed to mark the item as found'});
     }
 });
+
+// ROUTE 8: Get All found items using: GET "/api/lost-items/list-foundItems". login required
+router.get('/list-foundItems', async(req, res)=>{
+
+
+    try {
+        const lostItems = await LostItem.find();
+
+        // Generate pre-signed URLs for each image
+        const itemsWithUrls = [];
+        for (const item of lostItems) {
+            if (!item.image) {
+                console.error('Image not found for item:', item);
+                continue;
+            }
+            const getObjectParams = {
+                Bucket: bucketName,
+                Key: item.image,
+            };
+            const command = new GetObjectCommand(getObjectParams);
+            const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+            itemsWithUrls.push({
+                ...item.toObject(),
+                imageUrl: url,
+            });
+        }
+
+        res.json({ lostItems: itemsWithUrls });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to retrieve lost items' });
+    }
+})
 module.exports = router;

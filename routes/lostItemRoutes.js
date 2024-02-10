@@ -276,7 +276,7 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
     try{
         console.log("req value inside backend answer func: "+req);
         const itemId = req.params.itemId;
-        const answer = req.body.securityQuestion.answer;
+        const answer = req.body.securityQuestion.answer.toLowerCase();
 
         const lostItem = await LostItem.findById(itemId);
 
@@ -324,12 +324,9 @@ router.post('/answerSecurityQuestion/:itemId', async (req, res) => {
 // ROUTE 7: Mark a specific lost item as found using: PUT "/api/lost-items/markAsFound/:itemId". login required
 router.put('/markAsFound/:itemId', authMiddleware, async (req, res) => {
     try{
-        console.log("req value: "+req);
         const itemId = req.params.itemId; // Item ID from the route parameters
-        console.log("itemId: ", itemId);
 
         const lostItem = await LostItem.findById(itemId);
-        console.log("lostItem: ", lostItem);
 
         if(!lostItem){
             return res.status(404).json({error: 'Lost item not found'});

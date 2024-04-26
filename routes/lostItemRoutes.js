@@ -10,11 +10,6 @@ const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = re
 const crypto = require("crypto");
 const {getSignedUrl} = require("@aws-sdk/s3-request-presigner");
 
-const app = express();
-
-// Add middleware to parse JSON bodies
-app.use(express.json({limit: '50mb'}));
-
 // The below help us to create hex file name for files using crpto library
 const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
 

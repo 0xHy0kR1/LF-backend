@@ -21,3 +21,7 @@ app.use('/api/lost-items', require('./routes/lostItemRoutes')); //This response 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });  
+
+  app.get('/', (req, res) => {
+    res.send('Server is running successfully'); // Send a simple response indicating that the server is running
+  });
